@@ -1,13 +1,34 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "parameters": {},
+    "parameters": {
+        "managedClusters_aks_name": {
+            "defaultValue": "aks",
+            "type": "String"
+        },
+        "virtualNetworks_aks_vnet_externalid": {
+            "defaultValue": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/K8S/providers/Microsoft.Network/virtualNetworks/aks-vnet",
+            "type": "String"
+        },
+        "workspaces_DefaultWorkspace_fae09970_ccfa_4fad_a186_98b345a4b44f_CID_externalid": {
+            "defaultValue": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/DefaultResourceGroup-CID/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-fae09970-ccfa-4fad-a186-98b345a4b44f-CID",
+            "type": "String"
+        },
+        "publicIPAddresses_c6066a2e_93a1_4a40_b6da_c4c27876fd23_externalid": {
+            "defaultValue": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/MC_K8S_aks_centralindia/providers/Microsoft.Network/publicIPAddresses/c6066a2e-93a1-4a40-b6da-c4c27876fd23",
+            "type": "String"
+        },
+        "userAssignedIdentities_aks_agentpool_externalid": {
+            "defaultValue": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/MC_K8S_aks_centralindia/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aks-agentpool",
+            "type": "String"
+        }
+    },
     "variables": {},
     "resources": [
         {
             "type": "Microsoft.ContainerService/managedClusters",
             "apiVersion": "2023-01-02-preview",
-            "name": "aks",
+            "name": "[parameters('managedClusters_aks_name')]",
             "location": "centralindia",
             "sku": {
                 "name": "Basic",
@@ -18,7 +39,7 @@
             },
             "properties": {
                 "kubernetesVersion": "1.26.6",
-                "dnsPrefix": "aks-K8S-fae099",
+                "dnsPrefix": "[concat(parameters('managedClusters_aks_name'), '-K8S-fae099')]",
                 "agentPoolProfiles": [
                     {
                         "name": "nodepool1",
@@ -27,7 +48,7 @@
                         "osDiskSizeGB": 128,
                         "osDiskType": "Managed",
                         "kubeletDiskType": "OS",
-                        "vnetSubnetID": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/K8S/providers/Microsoft.Network/virtualNetworks/aks-vnet/subnets/aks-subnet",
+                        "vnetSubnetID": "[concat(parameters('virtualNetworks_aks_vnet_externalid'), concat('/subnets/', parameters('managedClusters_aks_name'), '-subnet'))]",
                         "maxPods": 30,
                         "type": "VirtualMachineScaleSets",
                         "maxCount": 3,
@@ -75,12 +96,12 @@
                     "omsagent": {
                         "enabled": true,
                         "config": {
-                            "logAnalyticsWorkspaceResourceID": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/DefaultResourceGroup-CID/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-fae09970-ccfa-4fad-a186-98b345a4b44f-CID",
+                            "logAnalyticsWorkspaceResourceID": "[parameters('workspaces_DefaultWorkspace_fae09970_ccfa_4fad_a186_98b345a4b44f_CID_externalid')]",
                             "useAADAuth": "true"
                         }
                     }
                 },
-                "nodeResourceGroup": "MC_K8S_aks_centralindia",
+                "nodeResourceGroup": "[concat('MC_K8S_', parameters('managedClusters_aks_name'), '_centralindia')]",
                 "enableRBAC": true,
                 "networkProfile": {
                     "networkPlugin": "azure",
@@ -91,7 +112,7 @@
                         },
                         "effectiveOutboundIPs": [
                             {
-                                "id": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/MC_K8S_aks_centralindia/providers/Microsoft.Network/publicIPAddresses/c6066a2e-93a1-4a40-b6da-c4c27876fd23"
+                                "id": "[parameters('publicIPAddresses_c6066a2e_93a1_4a40_b6da_c4c27876fd23_externalid')]"
                             }
                         ],
                         "backendPoolType": "nodeIPConfiguration"
@@ -108,7 +129,7 @@
                 },
                 "identityProfile": {
                     "kubeletidentity": {
-                        "resourceId": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourcegroups/MC_K8S_aks_centralindia/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aks-agentpool",
+                        "resourceId": "[parameters('userAssignedIdentities_aks_agentpool_externalid')]",
                         "clientId": "93e70a2b-3701-43ea-872d-fc5412926efa",
                         "objectId": "6cec54c3-31d3-4a40-b911-ddc26e7b15b2"
                     }
@@ -158,9 +179,9 @@
         {
             "type": "Microsoft.ContainerService/managedClusters/agentPools",
             "apiVersion": "2023-01-02-preview",
-            "name": "aks/nodepool1",
+            "name": "[concat(parameters('managedClusters_aks_name'), '/nodepool1')]",
             "dependsOn": [
-                "[resourceId('Microsoft.ContainerService/managedClusters', 'aks')]"
+                "[resourceId('Microsoft.ContainerService/managedClusters', parameters('managedClusters_aks_name'))]"
             ],
             "properties": {
                 "count": 0,
@@ -168,7 +189,7 @@
                 "osDiskSizeGB": 128,
                 "osDiskType": "Managed",
                 "kubeletDiskType": "OS",
-                "vnetSubnetID": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/K8S/providers/Microsoft.Network/virtualNetworks/aks-vnet/subnets/aks-subnet",
+                "vnetSubnetID": "[concat(parameters('virtualNetworks_aks_vnet_externalid'), '/subnets/aks-subnet')]",
                 "maxPods": 30,
                 "type": "VirtualMachineScaleSets",
                 "maxCount": 3,
