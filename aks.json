@@ -1,110 +1,192 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "metadata": {
-    "_generator": {
-      "name": "bicep",
-      "version": "0.9.1.41621",
-      "templateHash": "2637152180661081755"
-    }
-  },
-  "parameters": {
-    "clusterName": {
-      "type": "string",
-      "defaultValue": "aks101cluster",
-      "metadata": {
-        "description": "The name of the Managed Cluster resource."
-      }
-    },
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "The location of the Managed Cluster resource."
-      }
-    },
-    "dnsPrefix": {
-      "type": "string",
-      "metadata": {
-        "description": "Optional DNS prefix to use with hosted Kubernetes API server FQDN."
-      }
-    },
-    "osDiskSizeGB": {
-      "type": "int",
-      "defaultValue": 0,
-      "maxValue": 1023,
-      "minValue": 0,
-      "metadata": {
-        "description": "Disk size (in GB) to provision for each of the agent pool nodes. This value ranges from 0 to 1023. Specifying 0 will apply the default disk size for that agentVMSize."
-      }
-    },
-    "agentCount": {
-      "type": "int",
-      "defaultValue": 3,
-      "maxValue": 50,
-      "minValue": 1,
-      "metadata": {
-        "description": "The number of nodes for the cluster."
-      }
-    },
-    "agentVMSize": {
-      "type": "string",
-      "defaultValue": "standard_d2s_v3",
-      "metadata": {
-        "description": "The size of the Virtual Machine."
-      }
-    },
-    "linuxAdminUsername": {
-      "type": "string",
-      "metadata": {
-        "description": "User name for the Linux Virtual Machines."
-      }
-    },
-    "sshRSAPublicKey": {
-      "type": "string",
-      "metadata": {
-        "description": "Configure all linux machines with the SSH RSA public key string. Your key should include three parts, for example 'ssh-rsa AAAAB...snip...UcyupgH azureuser@linuxvm'"
-      }
-    }
-  },
-  "resources": [
-    {
-      "type": "Microsoft.ContainerService/managedClusters",
-      "apiVersion": "2022-05-02-preview",
-      "name": "[parameters('clusterName')]",
-      "location": "[parameters('location')]",
-      "identity": {
-        "type": "SystemAssigned"
-      },
-      "properties": {
-        "dnsPrefix": "[parameters('dnsPrefix')]",
-        "agentPoolProfiles": [
-          {
-            "name": "agentpool",
-            "osDiskSizeGB": "[parameters('osDiskSizeGB')]",
-            "count": "[parameters('agentCount')]",
-            "vmSize": "[parameters('agentVMSize')]",
-            "osType": "Linux",
-            "mode": "System"
-          }
-        ],
-        "linuxProfile": {
-          "adminUsername": "[parameters('linuxAdminUsername')]",
-          "ssh": {
-            "publicKeys": [
-              {
-                "keyData": "[parameters('sshRSAPublicKey')]"
-              }
-            ]
-          }
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.ContainerService/managedClusters",
+            "apiVersion": "2023-01-02-preview",
+            "name": "aks",
+            "location": "centralindia",
+            "sku": {
+                "name": "Basic",
+                "tier": "Free"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "kubernetesVersion": "1.26.6",
+                "dnsPrefix": "aks-K8S-fae099",
+                "agentPoolProfiles": [
+                    {
+                        "name": "nodepool1",
+                        "count": 0,
+                        "vmSize": "Standard_B2ms",
+                        "osDiskSizeGB": 128,
+                        "osDiskType": "Managed",
+                        "kubeletDiskType": "OS",
+                        "vnetSubnetID": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/K8S/providers/Microsoft.Network/virtualNetworks/aks-vnet/subnets/aks-subnet",
+                        "maxPods": 30,
+                        "type": "VirtualMachineScaleSets",
+                        "maxCount": 3,
+                        "minCount": 1,
+                        "enableAutoScaling": true,
+                        "powerState": {
+                            "code": "Stopped"
+                        },
+                        "orchestratorVersion": "1.26.6",
+                        "enableNodePublicIP": false,
+                        "mode": "System",
+                        "enableEncryptionAtHost": false,
+                        "enableUltraSSD": false,
+                        "osType": "Linux",
+                        "osSKU": "Ubuntu",
+                        "upgradeSettings": {},
+                        "enableFIPS": false
+                    }
+                ],
+                "linuxProfile": {
+                    "adminUsername": "azureuser",
+                    "ssh": {
+                        "publicKeys": [
+                            {
+                                "keyData": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCZ3B68P5e9Efx816P5YzLpCq5np4CY5fryIc41I6H5MZMEm65V7DedSYLVWmrdwDA+F8fEyxEuizoa3F4vHcKW+5BqAHtz7EKv2oOHcKqSeE0gAnJFSrl2R0Tp0K8ruIW3RAYdGCgfDIqbQeE2kTYqxViav04JTM0rGEvdW4L1VVDde3eemSQC0LXI+I/wgVWo+ScQY0qGNwjKZnzy+jvmppw9IaPGeFAjr8Jkwsmaxg+fHYng9gU0WuwV49515IodSbi2VtB7v90VbK3zT0tqTqotMnJGF9PWlpq7iwUY5p+a32NDrJgohtXp6pWOIvd9JYA9v8FKKZIUK+Ae+KhH"
+                            }
+                        ]
+                    }
+                },
+                "windowsProfile": {
+                    "adminUsername": "azureuser",
+                    "enableCSIProxy": true
+                },
+                "servicePrincipalProfile": {
+                    "clientId": "msi"
+                },
+                "addonProfiles": {
+                    "azureKeyvaultSecretsProvider": {
+                        "enabled": true,
+                        "config": {
+                            "enableSecretRotation": "false",
+                            "rotationPollInterval": "2m"
+                        }
+                    },
+                    "omsagent": {
+                        "enabled": true,
+                        "config": {
+                            "logAnalyticsWorkspaceResourceID": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/DefaultResourceGroup-CID/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-fae09970-ccfa-4fad-a186-98b345a4b44f-CID",
+                            "useAADAuth": "true"
+                        }
+                    }
+                },
+                "nodeResourceGroup": "MC_K8S_aks_centralindia",
+                "enableRBAC": true,
+                "networkProfile": {
+                    "networkPlugin": "azure",
+                    "loadBalancerSku": "Standard",
+                    "loadBalancerProfile": {
+                        "managedOutboundIPs": {
+                            "count": 1
+                        },
+                        "effectiveOutboundIPs": [
+                            {
+                                "id": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/MC_K8S_aks_centralindia/providers/Microsoft.Network/publicIPAddresses/c6066a2e-93a1-4a40-b6da-c4c27876fd23"
+                            }
+                        ],
+                        "backendPoolType": "nodeIPConfiguration"
+                    },
+                    "serviceCidr": "10.0.0.0/16",
+                    "dnsServiceIP": "10.0.0.10",
+                    "outboundType": "loadBalancer",
+                    "serviceCidrs": [
+                        "10.0.0.0/16"
+                    ],
+                    "ipFamilies": [
+                        "IPv4"
+                    ]
+                },
+                "identityProfile": {
+                    "kubeletidentity": {
+                        "resourceId": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourcegroups/MC_K8S_aks_centralindia/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aks-agentpool",
+                        "clientId": "93e70a2b-3701-43ea-872d-fc5412926efa",
+                        "objectId": "6cec54c3-31d3-4a40-b911-ddc26e7b15b2"
+                    }
+                },
+                "autoScalerProfile": {
+                    "balance-similar-node-groups": "false",
+                    "expander": "random",
+                    "max-empty-bulk-delete": "10",
+                    "max-graceful-termination-sec": "600",
+                    "max-node-provision-time": "15m",
+                    "max-total-unready-percentage": "45",
+                    "new-pod-scale-up-delay": "0s",
+                    "ok-total-unready-count": "3",
+                    "scale-down-delay-after-add": "10m",
+                    "scale-down-delay-after-delete": "10s",
+                    "scale-down-delay-after-failure": "3m",
+                    "scale-down-unneeded-time": "10m",
+                    "scale-down-unready-time": "20m",
+                    "scale-down-utilization-threshold": "0.5",
+                    "scan-interval": "10s",
+                    "skip-nodes-with-local-storage": "false",
+                    "skip-nodes-with-system-pods": "true"
+                },
+                "autoUpgradeProfile": {
+                    "nodeOSUpgradeChannel": "NodeImage"
+                },
+                "disableLocalAccounts": false,
+                "securityProfile": {},
+                "storageProfile": {
+                    "diskCSIDriver": {
+                        "enabled": true,
+                        "version": "v1"
+                    },
+                    "fileCSIDriver": {
+                        "enabled": true
+                    },
+                    "snapshotController": {
+                        "enabled": true
+                    }
+                },
+                "oidcIssuerProfile": {
+                    "enabled": false
+                },
+                "workloadAutoScalerProfile": {}
+            }
+        },
+        {
+            "type": "Microsoft.ContainerService/managedClusters/agentPools",
+            "apiVersion": "2023-01-02-preview",
+            "name": "aks/nodepool1",
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerService/managedClusters', 'aks')]"
+            ],
+            "properties": {
+                "count": 0,
+                "vmSize": "Standard_B2ms",
+                "osDiskSizeGB": 128,
+                "osDiskType": "Managed",
+                "kubeletDiskType": "OS",
+                "vnetSubnetID": "/subscriptions/fae09970-ccfa-4fad-a186-98b345a4b44f/resourceGroups/K8S/providers/Microsoft.Network/virtualNetworks/aks-vnet/subnets/aks-subnet",
+                "maxPods": 30,
+                "type": "VirtualMachineScaleSets",
+                "maxCount": 3,
+                "minCount": 1,
+                "enableAutoScaling": true,
+                "powerState": {
+                    "code": "Stopped"
+                },
+                "orchestratorVersion": "1.26.6",
+                "enableNodePublicIP": false,
+                "mode": "System",
+                "enableEncryptionAtHost": false,
+                "enableUltraSSD": false,
+                "osType": "Linux",
+                "osSKU": "Ubuntu",
+                "upgradeSettings": {},
+                "enableFIPS": false
+            }
         }
-      }
-    }
-  ],
-  "outputs": {
-    "controlPlaneFQDN": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName'))).fqdn]"
-    }
-  }
+    ]
 }
