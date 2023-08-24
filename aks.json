@@ -23,12 +23,6 @@
         "description": "The location of AKS resource."
       }
     },
-    "dnsPrefix": {
-      "type": "string",
-      "metadata": {
-        "description": "Optional DNS prefix to use with hosted Kubernetes API server FQDN."
-      }
-    },
     "osDiskSizeGB": {
       "type": "int",
       "defaultValue": 0,
