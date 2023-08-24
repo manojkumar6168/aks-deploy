@@ -74,7 +74,6 @@
       },
       "properties": {
         "enableRBAC": true,
-        "dnsPrefix": "[parameters('dnsPrefix')]",
         "agentPoolProfiles": [
           {
             "name": "agentpool",
