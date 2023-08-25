@@ -65,6 +65,13 @@
       "metadata": {
         "description": "Configure all linux machines with the SSH RSA public key string. Your key should include three parts, for example 'ssh-rsa AAAAB...snip...UcyupgH azureuser@linuxvm'"
       }
+    },
+	"aksClusterEnablePrivateCluster": {
+      "defaultValue": true,
+      "type": "bool",
+      "metadata": {
+        "description": "Specifies whether to create the cluster as a private cluster or not."
+      }
     }
   },
   "resources": [
@@ -97,6 +104,9 @@
               }
             ]
           }
+        },
+		"apiServerAccessProfile": {
+          "enablePrivateCluster": "[parameters('aksClusterEnablePrivateCluster')]"
         }
       }
     }
