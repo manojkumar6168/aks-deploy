@@ -290,7 +290,7 @@
       }
     },
     "virtualNetworkAddressPrefixes": {
-      "defaultValue": "10.64.0.0/16",
+      "defaultValue": "10.64.0.0/8",
       "type": "string",
       "metadata": {
         "description": "Specifies the address prefixes of the virtual network."
@@ -304,7 +304,7 @@
       }
     },
     "aksSubnetAddressPrefix": {
-      "defaultValue": "10.64.0.0/24",
+      "defaultValue": "10.64.0.0/16",
       "type": "string",
       "metadata": {
         "description": "Specifies the address prefix of the subnet hosting the AKS cluster."
@@ -426,34 +426,11 @@
         "description": "Specifies the storage account type for OS and data disk."
       }
     },
-    "numDataDisks": {
-      "type": "int",
-      "defaultValue": 1,
-      "minValue": 0,
-      "maxValue": 64,
-      "metadata": {
-        "description": "Specifies the number of data disks of the virtual machine."
-      }
-    },
     "osDiskSize": {
       "type": "int",
       "defaultValue": 50,
       "metadata": {
         "description": "Specifies the size in GB of the OS disk of the VM."
-      }
-    },
-    "dataDiskSize": {
-      "type": "int",
-      "defaultValue": 50,
-      "metadata": {
-        "description": "Specifies the size in GB of the OS disk of the virtual machine."
-      }
-    },
-    "dataDiskCaching": {
-      "type": "string",
-      "defaultValue": "ReadWrite",
-      "metadata": {
-        "description": "Specifies the caching requirements for the data disks."
       }
     },
     "blobStorageAccountName": {
@@ -468,20 +445,6 @@
       "defaultValue": "BlobStorageAccountPrivateEndpoint",
       "metadata": {
         "description": "Specifies the name of the private link to the boot diagnostics storage account."
-      }
-    },
-    "bastionSubnetAddressPrefix": {
-      "type": "string",
-      "defaultValue": "10.1.1.0/26",
-      "metadata": {
-        "description": "Specifies the Bastion subnet IP prefix. This prefix must be within vnet IP prefix address space."
-      }
-    },
-    "bastionHostName": {
-      "type": "string",
-      "defaultValue": "[concat(parameters('aksClusterName'), 'Bastion')]",
-      "metadata": {
-        "description": "Specifies the name of the Azure Bastion resource."
       }
     }
   },
