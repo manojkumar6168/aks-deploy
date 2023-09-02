@@ -18,7 +18,7 @@
         },
         "vnet-name": {
             "type": "string",
-            "defaultValue": "aks_vnet",
+            "defaultValue": "aks-vnet",
             "metadata": {
                 "description": "Virtual Network Name"
             }
@@ -59,14 +59,14 @@
             }
         },
         "ClusterName": {
-            "defaultValue": "aks",
+            "defaultValue": "[concat('aks-', uniquestring(resourceGroup().id))]",
             "type": "string",
             "metadata": {
                 "description": "Specifies the name of the AKS cluster."
             }
         },
         "osDiskSizeGB": {
-            "defaultValue": 100,
+            "defaultValue": 128,
             "type": "int",
             "metadata": {
                 "description": "Specifies the OS Disk Size in GB to be used to specify the disk size for every machine in this master/agent pool. If you specify 0, it will apply the default osDisk size according to the vmSize specified.."
@@ -75,7 +75,7 @@
         "agentCount": {
             "type": "int",
             "defaultValue": 1,
-            "maxValue": 100,
+            "maxValue": 10,
             "minValue": 1,
             "metadata": {
                 "description": "The number of nodes for the cluster. 1 Node is enough for Dev/Test and minimum 3 nodes, is recommended for Production"
@@ -114,14 +114,44 @@
                 "description": "Specifies the tier of a managed cluster SKU: Paid or Free"
             }
         },
+        "acrName": {
+            "type": "string",
+            "defaultValue": "[concat('acr_', uniquestring(resourceGroup().id))]",
+            "metadata": {
+                "description": "Name of the azure container registry (must be globally unique)"
+            },
+            "maxLength": 50,
+            "minLength": 5
+        },
+        "acrAdminUserEnabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable an admin user that has push/pull permission to the registry."
+            }
+        },
+        "acrSku": {
+            "type": "string",
+            "defaultValue": "Basic",
+            "metadata": {
+                "description": "Tier of your Azure Container Registry."
+            },
+            "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+            ]
+        },
         "serverName": {
             "type": "string",
+            "defaultValue": "[parameters('ClusterName')]",
             "metadata": {
                 "description": "Server Name for Azure Database for PostgreSQL"
             }
         },
         "administratorLogin": {
             "type": "string",
+            "defaultValue": "azureuser",
             "minLength": 1,
             "metadata": {
                 "description": "Database administrator login name"
@@ -129,6 +159,7 @@
         },
         "administratorLoginPassword": {
             "type": "securestring",
+            "defaultValue": "RoyalInfo@123",
             "minLength": 8,
             "metadata": {
                 "description": "Database administrator password"
@@ -188,7 +219,7 @@
             "metadata": {
                 "description": "PostgreSQL version"
             }
-        },        
+        },
         "backupRetentionDays": {
             "type": "int",
             "defaultValue": 7,
@@ -202,9 +233,134 @@
             "metadata": {
                 "description": "Geo-Redundant Backup setting"
             }
+        },
+        "vmName": {
+
+            "type": "string",
+            "defaultValue": "Jump-Srv",
+            "metadata": {
+                "description": "Specifies the name of the virtual machine."
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2s",
+            "metadata": {
+                "description": "Specifies the size of the virtual machine."
+            }
+        },
+        "imagePublisher": {
+            "type": "string",
+            "defaultValue": "Canonical",
+            "metadata": {
+                "description": "Specifies the image publisher of the disk image used to create the virtual machine."
+            }
+        },
+        "imageOffer": {
+            "type": "string",
+            "defaultValue": "UbuntuServer",
+            "metadata": {
+                "description": "Specifies the offer of the platform image or marketplace image used to create the virtual machine."
+            }
+        },
+        "imageSku": {
+            "type": "string",
+            "defaultValue": "18.04-LTS",
+            "metadata": {
+                "description": "Specifies the Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version."
+            }
+        },
+        "vmAdminUsername": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Specifies the name of the administrator account of the virtual machine."
+            }
+        },
+        "authenticationType": {
+            "type": "string",
+            "defaultValue": "password",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Specifies the type of authentication when accessing the Virtual Machine. SSH key is recommended."
+            }
+        },
+        "vmAdminPasswordOrKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Specifies the SSH Key or password for the virtual machine. SSH key is recommended."
+            }
+        },
+        "diskStorageAccounType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_RAGRS",
+                "Standard_ZRS",
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_GZRS",
+                "Standard_RAGZRS"
+            ],
+            "metadata": {
+                "description": "Specifies the storage account type for OS and data disk."
+            }
+        },
+        "osDiskSize": {
+            "type": "int",
+            "defaultValue": 30,
+            "metadata": {
+                "description": "Specifies the size in GB of the OS disk of the VM."
+            }
+        },
+        "blobStorageAccountName": {
+            "type": "string",
+            "defaultValue": "[concat('boot', uniquestring(resourceGroup().id))]",
+            "metadata": {
+                "description": "Specifies the globally unique name for the storage account used to store the boot diagnostics logs of the virtual machine."
+            }
+        },
+        "blobStorageAccountPrivateEndpointName": {
+            "type": "string",
+            "defaultValue": "BlobStorageAccountPrivateEndpoint",
+            "metadata": {
+                "description": "Specifies the name of the private link to the boot diagnostics storage account."
+            }
         }
 
 
+    },
+    "variables": {
+        "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]",
+        "vmSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet-name'), parameters('postgresql_subnet'))]",
+        "vmNicName": "[concat(parameters('vmName'), 'Nic')]",
+        "vmNicId": "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName'))]",
+        "blobStorageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('blobStorageAccountName'))]",
+        "blobPublicDNSZoneForwarder": "[concat('.blob.', environment().suffixes.storage)]",
+        "blobPrivateDnsZoneName": "[concat('privatelink', variables('blobPublicDNSZoneForwarder'))]",
+        "blobPrivateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('blobPrivateDnsZoneName'))]",
+        "blobStorageAccountPrivateEndpointGroupName": "blob",
+        "blobPrivateDnsZoneGroup": "[concat(parameters('blobStorageAccountPrivateEndpointName'),'/', variables('blobStorageAccountPrivateEndpointGroupName'), 'PrivateDnsZoneGroup')]",
+        "blobStorageAccountPrivateEndpointId": "[resourceId('Microsoft.Network/privateEndpoints', parameters('blobStorageAccountPrivateEndpointName'))]",
+
+        "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[concat('/home/', parameters('vmAdminUsername'), '/.ssh/authorized_keys')]",
+                        "keyData": "[parameters('vmAdminPasswordOrKey')]"
+                    }
+                ]
+            },
+            "provisionVMAgent": true
+        },
+        "bastionPublicIpAddressName": "[concat(parameters('vmName'),'PublicIp')]"
 
     },
     "resources": [
@@ -270,7 +426,24 @@
 
                 "apiServerAccessProfile": {
                     "enablePrivateCluster": "[parameters('aksClusterEnablePrivateCluster')]"
+
                 }
+            }
+        },
+        {
+            "type": "Microsoft.ContainerRegistry/registries",
+            "apiVersion": "2021-09-01",
+            "name": "[parameters('acrName')]",
+            "location": "[parameters('location')]",
+            "tags": {
+                "displayName": "Container Registry",
+                "container.registry": "[parameters('acrName')]"
+            },
+            "sku": {
+                "name": "[parameters('acrSku')]"
+            },
+            "properties": {
+                "adminUserEnabled": "[parameters('acrAdminUserEnabled')]"
             }
         },
         {
@@ -296,6 +469,193 @@
                     "geoRedundantBackup": "[parameters('geoRedundantBackup')]"
                 }
             }
+        },
+
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[variables('blobPrivateDnsZoneName')]",
+            "location": "global",
+            "properties": {
+                "maxNumberOfRecordSets": 25000,
+                "maxNumberOfVirtualNetworkLinks": 1000,
+                "maxNumberOfVirtualNetworkLinksWithRegistration": 100
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('blobPrivateDnsZoneName'), '/link_to_', toLower(parameters('vnet-name')))]",
+            "location": "global",
+            "dependsOn": [
+                "[variables('blobPrivateDnsZoneId')]",
+                "[variables('vnetId')]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[variables('vnetId')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-04-01",
+            "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('vnetId')]",
+                "[variables('blobStorageAccountId')]"
+            ],
+            "properties": {
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[variables('blobStorageAccountId')]",
+                            "groupIds": [
+                                "[variables('blobStorageAccountPrivateEndpointGroupName')]"
+                            ]
+                        }
+                    }
+                ],
+                "subnet": {
+                    "id": "[variables('vmSubnetId')]"
+                },
+                "customDnsConfigs": [
+                    {
+                        "fqdn": "[concat(parameters('blobStorageAccountName'), variables('blobPublicDNSZoneForwarder'))]"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2020-03-01",
+            "name": "[variables('blobPrivateDnsZoneGroup')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('blobPrivateDnsZoneId')]",
+                "[variables('blobStorageAccountPrivateEndpointId')]"
+            ],
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "dnsConfig",
+                        "properties": {
+                            "privateDnsZoneId": "[variables('blobPrivateDnsZoneId')]"
+                        }
+                    }
+                ]
+            }
+        },
+
+        {
+            "apiVersion": "2020-05-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('bastionPublicIpAddressName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+
+
+        {
+            "apiVersion": "2019-06-01",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[parameters('blobStorageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "StorageV2"
+        },
+        {
+            "apiVersion": "2020-04-01",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('vmNicName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('vnetId')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('vmSubnetId')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2020-06-01",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('vmName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[variables('vmNicId')]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmName')]",
+                    "adminUsername": "[parameters('vmAdminUsername')]",
+                    "adminPassword": "[parameters('vmAdminPasswordOrKey')]",
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[parameters('imagePublisher')]",
+                        "offer": "[parameters('imageOffer')]",
+                        "sku": "[parameters('imageSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(parameters('vmName'),'_OSDisk')]",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        "diskSizeGB": "[parameters('osDiskSize')]",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('diskStorageAccounType')]"
+                        }
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('vmNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[reference(variables('blobStorageAccountId')).primaryEndpoints['blob']]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "2020-06-01",
+            "type": "microsoft.reg",
+            "name": "[parameters('vmName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": []
         }
+
+
+
     ]
 }
