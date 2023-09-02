@@ -116,7 +116,7 @@
         },
         "acrName": {
             "type": "string",
-            "defaultValue": "[concat('acr_', uniquestring(resourceGroup().id))]",
+            "defaultValue": "[concat('acr', uniquestring(resourceGroup().id))]",
             "metadata": {
                 "description": "Name of the azure container registry (must be globally unique)"
             },
