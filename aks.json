@@ -1,13 +1,6 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "metadata": {
-        "_generator": {
-            "name": "bicep",
-            "version": "0.5.6.12127",
-            "templateHash": "12705365244308198684"
-        }
-    },
     "parameters": {
         "location": {
             "type": "string",
@@ -25,7 +18,7 @@
         },
         "vnetAddressPrefix": {
             "type": "string",
-            "defaultValue": "10.0.0.0/16",
+            "defaultValue": "10.64.0.0/16",
             "metadata": {
                 "description": "Virtual Network Address Prefix"
             }
@@ -39,7 +32,7 @@
         },
         "aks-subnetPrefix": {
             "type": "string",
-            "defaultValue": "10.0.0.0/21",
+            "defaultValue": "10.64.0.0/24",
             "metadata": {
                 "description": "AKS Subnet Address Prefix"
             }
@@ -53,7 +46,7 @@
         },
         "postgresubnetPrefix": {
             "type": "string",
-            "defaultValue": "10.0.8.0/24",
+            "defaultValue": "10.64.255.0/24",
             "metadata": {
                 "description": "Subnet Address Prefix"
             }
@@ -72,13 +65,22 @@
                 "description": "Specifies the OS Disk Size in GB to be used to specify the disk size for every machine in this master/agent pool. If you specify 0, it will apply the default osDisk size according to the vmSize specified.."
             }
         },
-        "agentCount": {
+        "AgentCountMin": {
             "type": "int",
             "defaultValue": 1,
-            "maxValue": 10,
+            "maxValue": 3,
             "minValue": 1,
             "metadata": {
-                "description": "The number of nodes for the cluster. 1 Node is enough for Dev/Test and minimum 3 nodes, is recommended for Production"
+                "description": "The number of Minimum nodes for the cluster. 1 Node is enough for Dev/Test and minimum 3 nodes, is recommended for Production"
+            }
+        },
+        "AgentCountMax": {
+            "type": "int",
+            "defaultValue": 5,
+            "maxValue": 25,
+            "minValue": 1,
+            "metadata": {
+                "description": "The number of Maximum nodes for the cluster"
             }
         },
         "agentVMSize": {
@@ -335,6 +337,10 @@
 
     },
     "variables": {
+        "vmSubnetNsgName": "[concat(parameters('postgresql_subnet'), 'Nsg')]",
+        "vmSubnetNsgId": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('vmSubnetNsgName'))]",
+        "bastionSubnetNsgName": "[concat(parameters('postgresql_subnet'),'Nsg')]",
+        "bastionSubnetNsgId": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('bastionSubnetNsgName'))]",
         "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]",
         "vmSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet-name'), parameters('postgresql_subnet'))]",
         "vmNicName": "[concat(parameters('vmName'), 'Nic')]",
@@ -365,7 +371,7 @@
     "resources": [
         {
             "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2021-05-01",
+            "apiVersion": "2022-09-01",
             "name": "[parameters('vnet-name')]",
             "location": "[parameters('location')]",
             "properties": {
@@ -373,65 +379,44 @@
                     "addressPrefixes": [
                         "[parameters('vnetAddressPrefix')]"
                     ]
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks/subnets",
-            "apiVersion": "2021-05-01",
-            "name": "[format('{0}/{1}', parameters('vnet-name'), parameters('aks-subnet'))]",
-            "properties": {
-                "addressPrefix": "[parameters('aks-subnetPrefix')]"
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
-            ]
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks/subnets",
-            "apiVersion": "2021-05-01",
-            "name": "[format('{0}/{1}', parameters('vnet-name'), parameters('postgresql_subnet'))]",
-            "properties": {
-                "addressPrefix": "[parameters('postgresubnetPrefix')]"
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
-            ]
-        },
-        {
-            "type": "Microsoft.ContainerService/managedClusters",
-            "apiVersion": "2022-05-02-preview",
-            "name": "[parameters('clusterName')]",
-            "location": "[parameters('location')]",
-            "identity": {
-                "type": "SystemAssigned"
-            },
-            "properties": {
-                "dnsPrefix": "[parameters('dnsPrefix')]",
-                "sku": {
-                    "name": "Basic",
-                    "tier": "[parameters('aksClusterSkuTier')]"
                 },
-                "agentPoolProfiles": [
+                "subnets": [
                     {
-                        "name": "agentpool",
-                        "osDiskSizeGB": "[parameters('osDiskSizeGB')]",
-                        "count": "[parameters('agentCount')]",
-                        "vmSize": "[parameters('agentVMSize')]",
-                        "osType": "Linux",
-                        "mode": "System"
+                        "name": "[parameters('aks-subnet')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('aks-subnetPrefix')]",
+                            "serviceEndpoints": [],
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Disabled"
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/subnets"
+
+                    },
+                    {
+                        "name": "[parameters('postgresql_subnet')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('postgresubnetPrefix')]",
+                            "serviceEndpoints": [],
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Disabled"
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/subnets"
+
                     }
                 ],
-
-                "apiServerAccessProfile": {
-                    "enablePrivateCluster": "[parameters('aksClusterEnablePrivateCluster')]"
-
-                }
+                "virtualNetworkPeerings": [],
+                "enableDdosProtection": false
             }
+
+
+
         },
+
         {
             "type": "Microsoft.ContainerRegistry/registries",
-            "apiVersion": "2021-09-01",
+            "apiVersion": "2022-12-01",
             "name": "[parameters('acrName')]",
             "location": "[parameters('location')]",
             "tags": {
@@ -560,9 +545,35 @@
             "properties": {
                 "publicIPAllocationMethod": "Static"
             }
+
         },
-
-
+        {
+            "apiVersion": "2020-07-01",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('bastionSubnetNsgName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    }
+                ]
+            }
+        },
         {
             "apiVersion": "2019-06-01",
             "type": "Microsoft.Storage/storageAccounts",
@@ -589,10 +600,16 @@
                             "privateIPAllocationMethod": "Dynamic",
                             "subnet": {
                                 "id": "[variables('vmSubnetId')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpAddressName'))]"
                             }
                         }
                     }
-                ]
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('vmSubnetNsgName'))]"
+                }
             }
         },
         {
@@ -601,8 +618,7 @@
             "name": "[parameters('vmName')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[variables('vmNicId')]",
-                "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName'))]"
+                "[variables('vmNicId')]"
             ],
             "properties": {
                 "hardwareProfile": {
@@ -643,6 +659,46 @@
                         "enabled": true,
                         "storageUri": "[reference(variables('blobStorageAccountId')).primaryEndpoints['blob']]"
                     }
+                }
+
+
+            }
+        },
+        {
+            "type": "Microsoft.ContainerService/managedClusters",
+            "apiVersion": "2022-05-02-preview",
+            "name": "[parameters('clusterName')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+
+
+            "properties": {
+                "dnsPrefix": "[parameters('dnsPrefix')]",
+                "sku": {
+                    "name": "Basic",
+                    "tier": "[parameters('aksClusterSkuTier')]"
+                },
+                "agentPoolProfiles": [
+                    {
+                        "name": "agentpool",
+                        "osDiskSizeGB": "[parameters('osDiskSizeGB')]",
+                        "count": "[parameters('AgentCountMin')]",
+                        "vmSize": "[parameters('agentVMSize')]",
+                        "osType": "Linux",
+                        "mode": "System",
+                        "minCount": "[parameters('AgentCountMin')]",
+                        "maxCount": "[parameters('AgentCountMax')]",
+                        "enableAutoScaling": true,
+                        "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet-name'), parameters('aks-subnet'))]"
+
+                    }
+                ],
+
+                "apiServerAccessProfile": {
+                    "enablePrivateCluster": "[parameters('aksClusterEnablePrivateCluster')]"
+
                 }
             }
         }
