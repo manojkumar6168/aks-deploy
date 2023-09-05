@@ -1,12 +1,34 @@
+
+
 <!DOCTYPE html>
 <html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+.btn {
+  border: none;
+  background-color: inherit;
+  padding: 14px 28px;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.btn:hover {background: #eee;}
+
+.success {color: green;}
+.info {color: dodgerblue;}
+.warning {color: orange;}
+.danger {color: red;}
+.default {color: black;}
+</style>
+</head>
 <body>
 <center>
 <h3>Please click the below button to deploy AKS Culuster</h3>
 <br>
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmanojkumar6168%2Faks-deploy%2Fmain%2Faks.json" target="_blank">
-  <img src="https://aka.ms/deploytoazurebutton"/>
-</a>
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmanojkumar6168%2Faks-deploy%2Fmain%2Faks.json" target="_blank"><button class="btn success">Deploy to Azure</button></a>
 </center>
+
 </body>
 </html>
