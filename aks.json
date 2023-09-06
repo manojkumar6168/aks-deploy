@@ -51,20 +51,6 @@
                 "description": "Subnet Address Prefix"
             }
         },
-        "natGatewayName": {
-            "defaultValue": "myNATgateway",
-            "type": "string",
-            "metadata": {
-                "description": "Name of the NAT gateway to be attached to the workspace subnets."
-            }
-        },
-        "natGatewayPublicIpName": {
-            "defaultValue": "myNATGatewayPublicIP",
-            "type": "string",
-            "metadata": {
-                "description": "Name of the NAT gateway public IP."
-            }
-        },
         "ClusterName": {
             "defaultValue": "[concat('aks-', uniquestring(resourceGroup().id))]",
             "type": "string",
@@ -99,7 +85,7 @@
         },
         "agentVMSize": {
             "type": "string",
-            "defaultValue": "Standard_B2ms",
+            "defaultValue": "Standard_D2s_v3",
             "metadata": {
                 "description": "The size of the Virtual Machine."
             }
@@ -158,30 +144,30 @@
                 "Premium"
             ]
         },
-        "PostgreServerName": {
-            "type": "string",
-            "defaultValue": "[concat('postgresql-', uniquestring(resourceGroup().id))]",
-            "metadata": {
-                "description": "PostgreSQL Server Name"
-            }
-        },
-        "PostgreAdminLogin": {
+        "administratorLogin": {
             "type": "string",
             "defaultValue": "azureuser",
             "metadata": {
                 "description": "PostgreSQL admin Login ID"
             }
         },
-        "PostgreAdminLoginPassword": {
+        "administratorLoginPassword": {
             "type": "secureString",
             "defaultValue": "RoyalInfo@123",
             "metadata": {
                 "description": "PostgreSQL admin Login Password"
             }
         },
-        "PostgreServerEdition": {
+        "serverName": {
             "type": "string",
-            "defaultValue": "Burstable",
+            "defaultValue": "[concat('postgresql-', uniquestring(resourceGroup().id))]",
+            "metadata": {
+                "description": "PostgreSQL Server Name"
+            }
+        },
+        "serverEdition": {
+            "type": "string",
+            "defaultValue": "GeneralPurpose",
             "metadata": {
                 "description": "PostgreSQL Server Edition"
             }
@@ -220,11 +206,18 @@
                 "description": "Geo-Redundant Backup setting"
             }
         },
-        "PostgreDnsZoneName": {
+        "dnsZoneName": {
             "type": "string",
             "defaultValue": "postgre",
             "metadata": {
                 "description": "Name for Postgre DNS Private Zone"
+            }
+        },
+        "dnsZoneFqdn": {
+            "type": "string",
+            "defaultValue": "[format('{0}.postgres.database.azure.com', parameters('dnsZoneName'))]",
+            "metadata": {
+                "description": "Fully Qualified Postgre DNS Private Zone"
             }
         },
         "vmName": {
@@ -331,6 +324,7 @@
         "vmSubnetNsgName": "[concat(parameters('postgresql_subnet'), 'Nsg')]",
         "bastionSubnetNsgName": "[concat(parameters('postgresql_subnet'),'Nsg')]",
         "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]",
+        "vmSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet-name'), parameters('postgresql_subnet'))]",
         "vmNicName": "[concat(parameters('vmName'), 'Nic')]",
         "vmNicId": "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName'))]",
         "blobStorageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('blobStorageAccountName'))]",
@@ -341,7 +335,6 @@
         "blobPrivateDnsZoneGroup": "[concat(parameters('blobStorageAccountPrivateEndpointName'),'/', variables('blobStorageAccountPrivateEndpointGroupName'), 'PrivateDnsZoneGroup')]",
         "blobStorageAccountPrivateEndpointId": "[resourceId('Microsoft.Network/privateEndpoints', parameters('blobStorageAccountPrivateEndpointName'))]",
         "vnetLink": "[concat(variables('blobPrivateDnsZoneName'), '/link_to_', toLower(parameters('vnet-name')))]",
-        "PostgreDnsZoneFqdn": "[format('{0}.postgres.database.azure.com', parameters('PostgreDnsZoneName'))]",
 
         "linuxConfiguration": {
             "disablePasswordAuthentication": true,
@@ -363,9 +356,6 @@
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2022-09-01",
             "name": "[parameters('vnet-name')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))]"
-            ],
             "location": "[parameters('location')]",
             "properties": {
                 "addressSpace": {
@@ -378,9 +368,6 @@
                         "name": "[parameters('aks-subnet')]",
                         "properties": {
                             "addressPrefix": "[parameters('aks-subnetPrefix')]",
-                            "natGateway": {
-                                "id": "[resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))]"
-                            },
                             "serviceEndpoints": [],
                             "delegations": [],
                             "privateEndpointNetworkPolicies": "Disabled",
@@ -393,9 +380,6 @@
                         "name": "[parameters('postgresql_subnet')]",
                         "properties": {
                             "addressPrefix": "[parameters('postgresubnetPrefix')]",
-                            "natGateway": {
-                                "id": "[resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))]"
-                            },
                             "serviceEndpoints": [],
                             "delegations": [
                                 {
@@ -413,40 +397,6 @@
                 ],
                 "virtualNetworkPeerings": [],
                 "enableDdosProtection": false
-            }
-        },
-        {
-            "type": "Microsoft.Network/publicIPAddresses",
-            "apiVersion": "2022-09-01",
-            "name": "[parameters('natGatewayPublicIpName')]",
-            "location": "[parameters('location')]",
-            "sku": {
-                "name": "Standard"
-            },
-            "properties": {
-                "publicIPAddressVersion": "IPv4",
-                "publicIPAllocationMethod": "Static",
-                "idleTimeoutInMinutes": 4
-            }
-        },
-        {
-            "type": "Microsoft.Network/natGateways",
-            "apiVersion": "2022-09-01",
-            "name": "[parameters('natGatewayName')]",
-            "location": "[parameters('location')]",
-            "sku": {
-                "name": "Standard"
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('natGatewayPublicIpName'))]"
-            ],
-            "properties": {
-                "idleTimeoutInMinutes": 4,
-                "publicIpAddresses": [
-                    {
-                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('natGatewayPublicIpName'))]"
-                    }
-                ]
             }
         },
 
@@ -469,19 +419,19 @@
         {
             "type": "Microsoft.DBforPostgreSQL/flexibleServers",
             "apiVersion": "2021-06-01",
-            "name": "[parameters('PostgreServerName')]",
+            "name": "[parameters('serverName')]",
             "location": "[parameters('location')]",
             "sku": {
                 "name": "[parameters('dbInstanceType')]",
-                "tier": "[parameters('PostgreServerEdition')]"
+                "tier": "[parameters('serverEdition')]"
             },
             "properties": {
                 "version": "[parameters('version')]",
-                "administratorLogin": "[parameters('PostgreAdminLogin')]",
-                "administratorLoginPassword": "[parameters('PostgreAdminLoginPassword')]",
+                "administratorLogin": "[parameters('administratorLogin')]",
+                "administratorLoginPassword": "[parameters('administratorLoginPassword')]",
                 "network": {
-                    "delegatedSubnetResourceId": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('PostgreDnsZoneFqdn'), parameters('vnet-name')), '2020-06-01').virtualNetwork.id, parameters('postgresql_subnet'))]",
-                    "privateDnsZoneArmResourceId": "[resourceId('Microsoft.Network/privateDnsZones', variables('PostgreDnsZoneFqdn'))]"
+                    "delegatedSubnetResourceId": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', parameters('dnsZoneFqdn'), parameters('vnet-name')), '2020-06-01').virtualNetwork.id, parameters('postgresql_subnet'))]",
+                    "privateDnsZoneArmResourceId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('dnsZoneFqdn'))]"
                 },
                 "highAvailability": {
                     "mode": "[parameters('haMode')]"
@@ -496,8 +446,8 @@
                 "availabilityZone": "[parameters('availabilityZone')]"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('PostgreDnsZoneFqdn'))]",
-                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('PostgreDnsZoneFqdn'), parameters('vnet-name'))]"
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('dnsZoneFqdn'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', parameters('dnsZoneFqdn'), parameters('vnet-name'))]"
             ]
 
 
@@ -521,7 +471,7 @@
         {
             "type": "Microsoft.Network/privateDnsZones",
             "apiVersion": "2018-09-01",
-            "name": "[variables('PostgreDnsZoneFqdn')]",
+            "name": "[parameters('dnsZoneFqdn')]",
             "location": "global"
 
         },
@@ -544,7 +494,7 @@
         {
             "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
             "apiVersion": "2018-09-01",
-            "name": "[format('{0}/{1}', variables('PostgreDnsZoneFqdn'), parameters('vnet-name'))]",
+            "name": "[format('{0}/{1}', parameters('dnsZoneFqdn'), parameters('vnet-name'))]",
             "location": "global",
             "properties": {
                 "registrationEnabled": false,
@@ -553,7 +503,7 @@
                 }
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('PostgreDnsZoneFqdn'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('dnsZoneFqdn'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
             ]
         },
@@ -775,10 +725,7 @@
                     "enablePrivateCluster": "[parameters('aksClusterEnablePrivateCluster')]"
 
                 }
-            },
-            "dependsOn": [
-                "[variables('vnetId')]"
-            ]
+            }
         }
 
     ]
